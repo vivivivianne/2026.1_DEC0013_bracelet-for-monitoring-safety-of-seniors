@@ -18,3 +18,4 @@ Esse codigo se comunica com o código de outro Esp32 rodando o [Safety Band Mana
 - [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32/index.html)
 - [Sinric Pro API docs](https://apidocs.sinric.pro/#api-Device-get_api_v1_devices__deviceId_action)
 - [Esp Websocket Client](https://docs.espressif.com/projects/esp-protocols/esp_websocket_client/docs/latest/index.html)
+- [Sinric Pro ESP-IDF Component Devices](https://github.com/sinricpro/esp-idf/tree/c68910bec1e520c009917579313d62a9fceca084/src/devices)
