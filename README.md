@@ -6,7 +6,7 @@ Mais informações sobre o funcionamento de cada dispositivos podem ser encontra
 
 ## Visão Geral do projeto
 
-!(./img/circuit.png)[Circuit Diagram]
+![Circuit Diagram](img/circuit.png)
 
 Temos dois circuitos: 
 A pulseira que possui um oximetro, acelerômetro e botão de emergência. Os sensores se comunicam com o esp via I2C, o botão funciona ligado ao GPIO4 em configuração pull up
