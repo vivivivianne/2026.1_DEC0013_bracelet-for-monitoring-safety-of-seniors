@@ -5,7 +5,9 @@ Esse repositório possui dois códigos fontes diferentes, um para a pulseira, e 
 Mais informações sobre o funcionamento de cada dispositivos podem ser encontradas em arquivos .md em seus respectivos diretórios.
 
 ## Visão Geral do projeto
+
 !(./img/circuit.png)[Circuit Diagram]
+
 Temos dois circuitos: 
 A pulseira que possui um oximetro, acelerômetro e botão de emergência. Os sensores se comunicam com o esp via I2C, o botão funciona ligado ao GPIO4 em configuração pull up
 O alarme, possui apenas um esp que fica conectado a uma rede esperando receber a requisição para ligar o buzzer
