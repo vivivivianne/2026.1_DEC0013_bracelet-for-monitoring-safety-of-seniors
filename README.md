@@ -1,7 +1,17 @@
-# Esp32 Safety Band
+# Bracelet for monitoring safety of seniors
 
 Código do sistema de uma pulseira de segurança que detecta quedas e emergências médicas em idosos.
-Esse codigo se comunica com o código de outro Esp32 rodando o [Safety Band Manager](Link Required), que por fim encaminha todos os dados pro sinric pro e ativa um buzzer quando necessário.
+Esse repositório possui dois códigos fontes diferentes, um para a pulseira, e outro para um sistema que ativa um alarme.
+Mais informações sobre o funcionamento de cada dispositivos podem ser encontradas em arquivos .md em seus respectivos diretórios.
+
+## Visão Geral do projeto
+!(./img/circuit.png)[Circuit Diagram]
+Temos dois circuitos: 
+A pulseira que possui um oximetro, acelerômetro e botão de emergência. Os sensores se comunicam com o esp via I2C, o botão funciona ligado ao GPIO4 em configuração pull up
+O alarme, possui apenas um esp que fica conectado a uma rede esperando receber a requisição para ligar o buzzer
+
+### Estrutura de Arquivos
+TBA
 
 ### Como buildar
 - Tenha o esp-idf atual e suas dependencias instalados
@@ -10,9 +20,12 @@ Esse codigo se comunica com o código de outro Esp32 rodando o [Safety Band Mana
 
 ### To-do
 - Configurar esp32 e pinout adequadamente
+- Configurar detecção de quedas e etc
+- Task i2c
+- Task Botão de emergencia
+- Task Comm de Rede
 - Configurar Protocolo de comunicação
 - Task de comunicação com o esp32 central
-- Tasks de sensores
 
 ### Recursos:
 - [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32/index.html)
