@@ -22,13 +22,9 @@ TBA
 - Builde com ```idf.py build```
 
 ### To-do
-- Configurar esp32 e pinout adequadamente
-- Configurar detecção de quedas e etc
-- Task i2c
-- Task Botão de emergencia
-- Task Comm de Rede
-- Configurar Protocolo de comunicação
-- Task de comunicação com o esp32 central
+- [ ] finish project documentation
+- [ ] code review / cleanup / merge
+- [ ] test and adjust the final code
 
 ### Recursos:
 - [ESP-IDF Programming Guide](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32/index.html)
