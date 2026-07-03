@@ -14,6 +14,7 @@
 - [x] try to reduce delay() usage - now only used when something fails to load and needs to retry
 - [x] Updated build flags
 
+- [ ] Global struct containing all of the sensor data (do not recalculate stuff in debug print ig lol)
 - [ ] Remove some magic numbers
 - [ ] Move debug text elsewhere and group it togheter.
 - [ ] Use buntypes.h

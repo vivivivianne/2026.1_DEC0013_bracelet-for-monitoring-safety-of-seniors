@@ -46,7 +46,7 @@ String alerts[] = { "Botão de Pânico Acionado!", "Queda Brusca Detectada!",
 volatile float bpm_global = 0.0;
 volatile uint8_t spo2_global = 0;
 
-// Timers do Core 1
+// Timers
 uint32_t t_tick_sensors = 0;
 uint32_t t_activated_alarm = 0;
 uint32_t t_telemtry = 0;
@@ -73,23 +73,22 @@ void max30100_task(void *pvParameters)
 	}
 	DEBUG_PRINTLN("[OXM] OK!");
 
-	// Retorna para a configuração de corrente idêntica ao teste isolado de sucesso
+	// use tested current
 	pox.setIRLedCurrent(MAX30100_LED_CURR_50MA);
 	pox.setOnBeatDetectedCallback(onBeatDetected);
 
 	uint32_t t_update_vars = 0;
 
 	while (1) {
-		pox.update(); // Atualiza o buffer FIFO continuamente sem nenhuma concorrência
+		pox.update();
 
-		// Transfere os dados filtrados para as variáveis globais a cada 500ms
 		if (millis() - t_update_vars > 500) {
 			bpm_global = pox.getHeartRate();
 			spo2_global = pox.getSpO2();
 			t_update_vars = millis();
 		}
 
-		// Libera 1ms para o scheduler do FreeRTOS não travar o watchdog do Core 0
+		//keep watchdog alive
 		vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
 }
@@ -100,11 +99,11 @@ void setup()
 	Serial.begin(BAUD_RATE);
 	pinMode(BTN_PIN, INPUT_PULLUP);
 
-	// 1. Cria a tarefa assíncrona no CORE 0 antes de ligar o WiFi
+	// Oximeter task
 	BaseType_t task = xTaskCreatePinnedToCore(max30100_task, "TaskMAX", 4096, NULL, 1, NULL, 0);
 	configASSERT(task == pdPASS);
 
-	// 2. Inicializa o MPU6050 no Barramento Secundário (Core 1)
+	// Mpu6050
 	Wire1.begin(I2C2_SDA, I2C2_SCL);
 	DEBUG_PRINT("[MPU] Configurando I2C");
 	while (!mpu.begin(MPU6050_I2CADDR_DEFAULT, &Wire1)) {
@@ -114,7 +113,7 @@ void setup()
 	DEBUG_PRINTLN("[MPU] OK!");
 	mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
 
-	// 3. Inicializa Conexões de Rede (Core 1)
+	//Wifi
 	DEBUG_PRINT("[WIFI] Conectando WiFi");
 	WiFi.begin(WIFI_SSID, WIFI_PASS);
 	while (WiFi.status() != WL_CONNECTED) {
@@ -123,7 +122,7 @@ void setup()
 	}
 	DEBUG_PRINTLN("[WIFI] OK!");
 
-	// 4. Inicializa Link IoT (Core 1)
+	// SinricPro
 	SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
 	mySwitch.onPowerState(onPowerState);
 	SinricPro.begin(APP_KEY, APP_SECRET);
@@ -170,6 +169,7 @@ void loop()
 			}
 		}
 
+		// handle alert
 		if (alert_id != ALERT_NONE && (millis() - t_last_alert > COOLDOWN_ALERTAS)) {
 			DEBUG_PRINTLN("\n>>> [ALERTA] DISPARANDO EVENTO: " + alerts[alert_id]);
 			SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
@@ -216,6 +216,7 @@ static float module(sensors_vec_t vec)
 // currently unused fallback function
 static void onBeatDetected(void)
 {
+	return;
 }
 
 // another unused callback
