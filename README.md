@@ -18,7 +18,7 @@ inside the project dir, run.
 
 To build/flash with debugging enabled run,
 
-``pio -e debug -t upload``
+``pio -e debug run -t upload``
 
 ### Estrutura de Arquivos
 TBA
