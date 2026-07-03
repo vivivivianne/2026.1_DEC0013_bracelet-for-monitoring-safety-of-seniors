@@ -1,0 +1,17 @@
+# evil todo list
+- [ ] Separate code in different functions
+    - [ ] config setup
+    - [ ] Sensor Reading
+    - [ ] Wifi stuff
+    - [ ] custom functions for fall detection and heartrate detection
+    - [x] Separate debug function
+- [ ] fix acelAracao typo
+- [ ] Remove unecessary comments
+- [ ] Remove magic numbers
+- [ ] Remove while(1) and use assert for errors instead
+- [ ] Change variable naming
+- [ ] Use buntypes.h
+- [ ] remove unused functions
+- [ ] Move credential configuration to a different file
+- [ ] try to reduce delay() usage
+- [ ] improve collision detection
