@@ -39,6 +39,8 @@ String alerts[] = { "Botão de Pânico Acionado!", "Queda Brusca Detectada!",
 volatile float bpm_global = 0.0;
 volatile uint8_t spo2_global = 0;
 
+static float magnitude = 0;
+
 // Timers
 uint32_t t_tick_sensors = 0;
 uint32_t t_activated_alarm = 0;
@@ -144,7 +146,7 @@ void loop()
 		// check for collisions
 		sensors_event_t acell_ev, gyro_ev, temp_ev;
 		mpu.getEvent(&acell_ev, &gyro_ev, &temp_ev);
-		float magnitude = module(acell_ev.acceleration);
+		magnitude = module(acell_ev.acceleration);
 		if (magnitude > 25.0) {
 			alert_id = ALERT_COLLISION;
 		}
@@ -184,13 +186,8 @@ void loop()
 static void print_data(void)
 {
 	if (millis() - t_telemtry > INTERVALO_DEBUG) {
-		sensors_event_t a_debug, g_debug, t_debug;
-		mpu.getEvent(&a_debug, &g_debug, &t_debug);
-
-		float gTotal = module(a_debug.acceleration);
-
 		DEBUG_PRINT("[DATA] Magnitude G: ");
-		DEBUG_PRINT(gTotal);
+		DEBUG_PRINT(magnitude);
 		DEBUG_PRINT(" m/s² | FC: ");
 		DEBUG_PRINT(bpm_global);
 		DEBUG_PRINT(" bpm | SpO2: ");
