@@ -7,14 +7,7 @@
 #include "MAX30100_PulseOximeter.h"
 #include "SinricPro.h"
 #include "SinricProSwitch.h"
-#include <cstdint>
-
-// CREDENTIAL CONFIGS
-#define WIFI_SSID "Plus Energy"
-#define WIFI_PASS "PlusEnergy@123"
-#define APP_KEY "6773556b-5362-4987-ba9d-e45caf81fd7c"
-#define APP_SECRET "6b793176-5973-456d-8678-441090772d4a-6b6e6dc8-e803-483e-9b95-6f7d0a93e2ca"
-#define PULSEIRA_ID "6a2c2839c93c9fd0e00d3554"
+#include "credentials.h"
 
 #define BAUD_RATE 115200
 #define I2C_ADDR_MPU6050 0x68
@@ -123,7 +116,7 @@ void setup()
 	DEBUG_PRINTLN("[WIFI] OK!");
 
 	// SinricPro
-	SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
+	SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
 	mySwitch.onPowerState(onPowerState);
 	SinricPro.begin(APP_KEY, APP_SECRET);
 }
@@ -134,7 +127,7 @@ void loop()
 
 	// desativar o alarme depois de 3 segundos
 	if (disable_alarm && (millis() - t_activated_alarm > 3000)) {
-		SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
+		SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
 		mySwitch.sendPowerStateEvent(false);
 		disable_alarm = false;
 	}
@@ -172,7 +165,7 @@ void loop()
 		// handle alert
 		if (alert_id != ALERT_NONE && (millis() - t_last_alert > COOLDOWN_ALERTAS)) {
 			DEBUG_PRINTLN("\n>>> [ALERTA] DISPARANDO EVENTO: " + alerts[alert_id]);
-			SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
+			SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
 			mySwitch.sendPowerStateEvent(true);
 			mySwitch.sendPushNotification(alerts[alert_id]);
 
