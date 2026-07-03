@@ -3,6 +3,7 @@
 #include "hal/gpio_types.h"
 #include "soc/gpio_num.h"
 #include "driver/gpio.h"
+#include "esp_wifi.h"
 
 #define MPU_6050_IMPL
 #include "mpu_6050.h"
@@ -10,7 +11,10 @@
 #include "driver/i2c_master.h"
 #include "esp_log.h"
 
-#define ALERT_PIN GPIO_NUM_4
+#define WIFI_SSID "wifi"
+#define WIFI_PASSWD "senha123"
+
+#define ALERT_PIN GPIO_NUM_4 
 #define ALERT_MASK (1ULL << ALERT_PIN)
 #define I2C_PORT I2C_NUM_0
 #define SDA GPIO_NUM_22
@@ -45,8 +49,25 @@ void app_main(void)
 
 static void setup_configs(i2c_handles handles)
 {
-	// GPIO4 - PULL UP Alert button w/ hardware interrupt
+        //Setup Wifi
+        wifi_config_t wifi_config = {
+            .sta = {
+                .ssid = WIFI_SSID,
+                .password = WIFI_PASSWD,
+                .bssid_set = false,
+                .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+                .pmf_cfg = {
+                    .capable = true,
+                    .required = false
+                },
+            },
+        };
 
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+        ESP_ERROR_CHECK(esp_wifi_start());
+
+	// GPIO4 - PULL UP Alert button w/ hardware interrupt
 	gpio_config_t conf = {
 		.pin_bit_mask = ALERT_MASK,
 		.mode = GPIO_MODE_INPUT,
@@ -54,7 +75,6 @@ static void setup_configs(i2c_handles handles)
 		.pull_down_en = GPIO_PULLDOWN_DISABLE,
 		.pull_up_en = GPIO_PULLUP_ENABLE,
 	};
-
 	gpio_config(&conf);
 
 	gpio_install_isr_service(ESP_INTR_FLAG_LEVEL2);
@@ -103,6 +123,7 @@ static void btn_isr_handler(void *arg)
 static void setup_tasks(i2c_handles handles)
 {
 	xTaskCreate(i2c_task, "i2c_task", 4096, (void *)&handles, 5, NULL);
+        ESP_ERROR_CHECK(esp_wifi_start());
 	// emergency button task
 	// network Task
 }
