@@ -27,9 +27,6 @@
 #define INTERVALO_DEBUG 1000
 #define COOLDOWN_ALERTAS 10000
 
-// Set to 0 to disable all debug prints
-#define DEBUG 1
-
 #if DEBUG
 #define DEBUG_PRINT(x) Serial.print(x)
 #define DEBUG_PRINTLN(x) Serial.println(x)

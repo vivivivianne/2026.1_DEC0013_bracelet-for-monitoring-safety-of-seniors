@@ -10,6 +10,16 @@ A pulseira que possui um oximetro, acelerômetro e botão de emergência. Os sen
 
 O alarme, possui apenas um esp que fica conectado a uma rede esperando receber a requisição para ligar o buzzer
 
+### Building and Flashing
+
+inside the project dir, run.
+
+``pio run -t upload``
+
+To build/flash with debugging enabled run,
+
+``pio -e debug -t upload``
+
 ### Estrutura de Arquivos
 TBA
 
