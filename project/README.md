@@ -1,18 +1,22 @@
 # evil todo list
-- [ ] Separate code in different functions
-    - [ ] config setup
-    - [ ] Sensor Reading
-    - [ ] Wifi stuff
-    - [ ] custom functions for fall detection and heartrate detection
+- [x] Separate code in different functions
+    - [x] config setup
+    - [x] Sensor Reading - not needed
+    - [x] Wifi stuff - not needed
     - [x] Separate debug function
 - [x] fix acelAracao typo
 - [x] added macro to allow quickly disabling debug print statements for better performance
-- [ ] Remove unecessary comments
-- [ ] Remove magic numbers
-- [ ] Remove while(1) and use assert for errors instead
-- [ ] Change variable naming
+- [x] Remove unecessary comments
+- [x] Move text to an array so it's easily changed in the future
+- [x] Remove while(1) and handle errors with assert or by retrying to start a sensor
+- [x] Added .clang-format
+- [x] Change variable naming
+- [x] try to reduce delay() usage - now only used when something fails to load and needs to retry
+- [x] Updated build flags
+
+- [ ] Remove some magic numbers
+- [ ] Move debug text elsewhere and group it togheter.
 - [ ] Use buntypes.h
-- [ ] remove unused functions
 - [ ] Move credential configuration to a different file
-- [ ] try to reduce delay() usage
-- [ ] improve collision detection
+- [ ] Separate functions for alert detection for each sensor, each function should receive thresholds and settings to define how sensible they are to triggering an alert
+- [ ] use temporal sampling to avoid noise and false postives when detecting collisions and heartrate changes (NEEDS TESTING) (MAKE this feature toggleable with a build flag)
