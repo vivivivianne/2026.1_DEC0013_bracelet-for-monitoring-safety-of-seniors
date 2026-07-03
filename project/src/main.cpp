@@ -88,7 +88,7 @@ void max30100_task(void *pvParameters)
 	}
 }
 
-// SETUP (EXECUTA NO CORE 1)
+// SETUP (CORE 1)
 void setup()
 {
 	Serial.begin(BAUD_RATE);
@@ -185,6 +185,7 @@ void loop()
 
 static void print_data(void)
 {
+#ifdef DEBUG
 	if (millis() - t_telemtry > INTERVALO_DEBUG) {
 		DEBUG_PRINT("[DATA] Magnitude G: ");
 		DEBUG_PRINT(magnitude);
@@ -193,9 +194,9 @@ static void print_data(void)
 		DEBUG_PRINT(" bpm | SpO2: ");
 		DEBUG_PRINT(spo2_global);
 		DEBUG_PRINTLN("%");
-
 		t_telemtry = millis();
 	}
+#endif
 }
 
 static float module(sensors_vec_t vec)
