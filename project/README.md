@@ -5,7 +5,8 @@
     - [ ] Wifi stuff
     - [ ] custom functions for fall detection and heartrate detection
     - [x] Separate debug function
-- [ ] fix acelAracao typo
+- [x] fix acelAracao typo
+- [x] added macro to allow quickly disabling debug print statements for better performance
 - [ ] Remove unecessary comments
 - [ ] Remove magic numbers
 - [ ] Remove while(1) and use assert for errors instead

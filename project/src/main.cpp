@@ -16,12 +16,23 @@
 #define APP_SECRET "6b793176-5973-456d-8678-441090772d4a-6b6e6dc8-e803-483e-9b95-6f7d0a93e2ca"
 #define PULSEIRA_ID "6a2c2839c93c9fd0e00d3554"
 
+#define BAUD_RATE 115200
 #define I2C_ADDR_MPU6050 0x68
 #define PINO_BOTAO 4
 #define I2C1_SDA 21 // Exclusivo MAX30100 (Core 0)
 #define I2C1_SCL 22 // Exclusivo MAX30100 (Core 0)
 #define I2C2_SDA 32 // Exclusivo MPU6050 (Core 1)
 #define I2C2_SCL 33 // Exclusivo MPU6050 (Core 1)
+
+#define DEBUG 1 // Set to 0 to disable all debug prints
+
+#if DEBUG
+  #define DEBUG_PRINT(x) Serial.print(x)
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+#else
+  #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTLN(x)
+#endif
 
 Adafruit_MPU6050 mpu;
 PulseOximeter pox;
@@ -42,8 +53,10 @@ const int COOLDOWN_ALERTAS = 10000;
 TaskHandle_t task_30102 = NULL;
 bool alarmeAguardandoResetNuvem = false;
 
-static void debug_print(void);
+static void print_data(void);
 static float module(sensors_vec_t vec);
+
+
 
 // currently unused fallback function
 void onBeatDetected()
@@ -61,12 +74,12 @@ bool onPowerState(const String &deviceId, bool &state)
 // ========================================================
 void tarefaMAX30100(void *pvParameters)
 {
-	Serial.print("[CORE 0] Inicializando MAX30100 no núcleo: ");
-	Serial.println(xPortGetCoreID());
+	DEBUG_PRINT("[CORE 0] Inicializando MAX30100 no núcleo: ");
+	DEBUG_PRINTLN(xPortGetCoreID());
 
 	Wire.begin(I2C1_SDA, I2C1_SCL);
 	if (!pox.begin()) {
-		Serial.println("[ERRO CRÍTICO CORE 0] Falha no MAX30100");
+		DEBUG_PRINTLN("[ERRO CRÍTICO CORE 0] Falha no MAX30100");
 		while (1)
 			;
 	}
@@ -97,7 +110,7 @@ void tarefaMAX30100(void *pvParameters)
 // ==========================================
 void setup()
 {
-	Serial.begin(115200);
+	Serial.begin(BAUD_RATE);
 	pinMode(PINO_BOTAO, INPUT_PULLUP);
 
 	// 1. Cria a tarefa assíncrona no CORE 0 antes de ligar o WiFi
@@ -108,21 +121,21 @@ void setup()
 
 	// 2. Inicializa o MPU6050 no Barramento Secundário (Core 1)
 	Wire1.begin(I2C2_SDA, I2C2_SCL);
-	if (!mpu.begin(0x68, &Wire1)) {
-		Serial.println("[ERRO CORE 1] MPU6050 não encontrado!");
+	if (!mpu.begin(MPU6050_I2CADDR_DEFAULT, &Wire1)) {
+		DEBUG_PRINTLN("[ERRO CORE 1] MPU6050 não encontrado!");
 		while (1)
 			;
 	}
 	mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
 
 	// 3. Inicializa Conexões de Rede (Core 1)
-	Serial.print("[REDE] Conectando WiFi");
+	DEBUG_PRINT("[REDE] Conectando WiFi");
 	WiFi.begin(WIFI_SSID, WIFI_PASS);
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(500);
-		Serial.print(".");
+		DEBUG_PRINT(".");
 	}
-	Serial.println(" OK!");
+	DEBUG_PRINTLN(" OK!");
 
 	// 4. Inicializa Link IoT (Core 1)
 	SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
@@ -136,7 +149,7 @@ void setup()
 void loop()
 {
 	SinricPro.handle(); // Processa a rede no Core 1 sem atrasar o Core 0
-
+        
 	// Máquina de Estados do Alarme
 	if (alarmeAguardandoResetNuvem && (millis() - tFiltroJanelaNuvem > 3000)) {
 		SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
@@ -154,9 +167,9 @@ void loop()
 			causaAlerta = "Botão de Pânico Acionado!";
 		}
 
-		sensors_event_t acelaracao, giroscopio, temperatura;
-		mpu.getEvent(&acelaracao, &giroscopio, &temperatura);
-		float magnitudeG = module(acelaracao.acceleration);
+		sensors_event_t aceleracao, giroscopio, temperatura;
+		mpu.getEvent(&aceleracao, &giroscopio, &temperatura);
+		float magnitudeG = module(aceleracao.acceleration);
 
 		if (magnitudeG > 25.0) {
 			dispararEmergencia = true;
@@ -178,7 +191,7 @@ void loop()
 		}
 
 		if (dispararEmergencia && (millis() - tUltimoAlertaEnviado > COOLDOWN_ALERTAS)) {
-			Serial.println("\n>>> [ALERTA] DISPARANDO EVENTO: " + causaAlerta);
+			DEBUG_PRINTLN("\n>>> [ALERTA] DISPARANDO EVENTO: " + causaAlerta);
 			SinricProSwitch &mySwitch = SinricPro[PULSEIRA_ID];
 			mySwitch.sendPowerStateEvent(true);
 			mySwitch.sendPushNotification(causaAlerta);
@@ -192,10 +205,10 @@ void loop()
 	}
 
 	// Saída de Telemetria (1000ms)
-	debug_print();
+	print_data();
 }
 
-static void debug_print(void)
+static void print_data(void)
 {
 	if (millis() - tDebugTelemetria > INTERVALO_DEBUG) {
 		sensors_event_t a_debug, g_debug, t_debug;
@@ -203,13 +216,13 @@ static void debug_print(void)
 
 		float gTotal = module(a_debug.acceleration);
 
-		Serial.print("[DATA] Magnitude G: ");
-		Serial.print(gTotal);
-		Serial.print(" m/s² | FC: ");
-		Serial.print(bpmGlobal);
-		Serial.print(" bpm | SpO2: ");
-		Serial.print(spo2Global);
-		Serial.println("%");
+		DEBUG_PRINT("[DATA] Magnitude G: ");
+		DEBUG_PRINT(gTotal);
+		DEBUG_PRINT(" m/s² | FC: ");
+		DEBUG_PRINT(bpmGlobal);
+		DEBUG_PRINT(" bpm | SpO2: ");
+		DEBUG_PRINT(spo2Global);
+		DEBUG_PRINTLN("%");
 
 		tDebugTelemetria = millis();
 	}
