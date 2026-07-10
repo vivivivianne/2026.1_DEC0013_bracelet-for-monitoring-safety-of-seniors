@@ -40,10 +40,10 @@ String alerts[] = { "Botão de Pânico Acionado!", "Queda Brusca Detectada!",
 		    "Frequência Cardíaca Crítica!", "Hipóxia Crítica!" };
 
 // vars for task data sharing
-volatile float bpm_global = 0.0;
+volatile f32 bpm_global = 0.0;
 volatile u8 spo2_global = 0;
 
-static float magnitude = 0;
+static f32 magnitude = 0;
 
 // Timers
 u32 t_tick_sensors = 0;
@@ -54,16 +54,16 @@ u32 t_last_alert = 0;
 bool disable_alarm = false;
 
 static void print_data(void);
-static float module(sensors_vec_t vec);
+static f32 module(sensors_vec_t vec);
 static void onBeatDetected(void);
 static bool onPowerState(const String &deviceId, bool &state);
 
 #define MODULES_LEN 10
-static float modules[MODULES_LEN] = {};
+static f32 modules[MODULES_LEN] = {};
 static u8 modules_i = 0;
-static void buffer_update(float magnitude);
-static float buffer_get_avg(void);
-static bool detect_collision(float magnitude);
+static void buffer_update(f32 magnitude);
+static f32 buffer_get_avg(void);
+static bool detect_collision(f32 magnitude);
 
 // task for reading MAX30100 data on parallel
 void max30100_task(void *pvParameters)
@@ -162,7 +162,7 @@ void loop()
 			alert_id = ALERT_COLLISION;
 		}
 		// Read values shared from 30102 task
-		float bpm_local = bpm_global;
+		f32 bpm_local = bpm_global;
 		u8 spo2_local = spo2_global;
 
 		// check oximeter and heartrate
@@ -209,12 +209,12 @@ static void print_data(void)
 #endif
 }
 
-static float module(sensors_vec_t vec)
+static f32 module(sensors_vec_t vec)
 {
 	return sqrt(pow(vec.x, 2) + pow(vec.y, 2) + pow(vec.z, 2));
 }
 
-// currently unused fallback function
+// currently unused callback function
 static void onBeatDetected(void)
 {
 	return;
@@ -226,7 +226,7 @@ bool onPowerState(const String &deviceId, bool &state)
 	return true;
 }
 
-static void buffer_update(float value)
+static void buffer_update(f32 value)
 {
 	if (modules_i < MODULES_LEN) {
 		modules[modules_i] = value;
@@ -236,21 +236,21 @@ static void buffer_update(float value)
 	}
 }
 
-static float buffer_get_avg(void)
+static f32 buffer_get_avg(void)
 {
-	float sum;
+	f32 sum;
 	for (u8 i = 0; i < MODULES_LEN; i++) {
 		sum += modules[i];
 	}
 	return sum / MODULES_LEN;
 };
 
-static bool detect_collision(float magnitude)
+static bool detect_collision(f32 magnitude)
 {
 #ifdef NEW_DETECTION
-	float avg = buffer_get_avg();
+	f32 avg = buffer_get_avg();
 	bool dangerous_spd = (avg > DANGER_SPD_THRESHOLD);
-	float diff = (magnitude - avg);
+	f32 diff = (magnitude - avg);
 	bool crash = ((diff < 0) && (abs(diff) > SPD_DIFF_THRESHOLD));
 
 	if (dangerous_spd && crash) {
