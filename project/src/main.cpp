@@ -22,7 +22,7 @@
 #define COOLDOWN_ALERTAS 10000
 
 #define DANGER_SPD_THRESHOLD 20
-#define SPD_DIFF_THRESHOLD 5 
+#define SPD_DIFF_THRESHOLD 5
 
 #if DEBUG
 #define DEBUG_PRINT(x) Serial.print(x)
@@ -250,8 +250,8 @@ static bool detect_collision(float magnitude)
 #ifdef NEW_DETECTION
 	float avg = buffer_get_avg();
 	bool dangerous_spd = (avg > DANGER_SPD_THRESHOLD);
-        float diff = (magnitude - avg);
-	bool crash = ( (diff < 0) && (abs(diff) > SPD_DIFF_THRESHOLD) );
+	float diff = (magnitude - avg);
+	bool crash = ((diff < 0) && (abs(diff) > SPD_DIFF_THRESHOLD));
 
 	if (dangerous_spd && crash) {
 		return true;
