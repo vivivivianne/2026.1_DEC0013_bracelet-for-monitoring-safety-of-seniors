@@ -15,10 +15,10 @@
 - [x] Updated build flags
 
 - [x] do not save real api keys in the hecking code lmaoo
+- [x] Use buntypes.h
+- [x] Move credential configuration to a different file
+- [x] use temporal sampling to avoid noise and false postives when detecting collisions (NEEDS TESTING) (MAKE this feature toggleable with a build flag)
 - [ ] Global struct containing all of the sensor data (do not recalculate stuff in debug print ig lol)
 - [ ] Remove some magic numbers
 - [ ] Move debug text elsewhere and group it togheter.
-- [ ] Use buntypes.h
-- [ ] Move credential configuration to a different file
 - [ ] Separate functions for alert detection for each sensor, each function should receive thresholds and settings to define how sensible they are to triggering an alert
-- [ ] use temporal sampling to avoid noise and false postives when detecting collisions and heartrate changes (NEEDS TESTING) (MAKE this feature toggleable with a build flag)

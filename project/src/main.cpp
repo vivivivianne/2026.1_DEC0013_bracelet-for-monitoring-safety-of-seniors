@@ -8,6 +8,7 @@
 #include "SinricPro.h"
 #include "SinricProSwitch.h"
 #include "credentials.h"
+#include "types.h"
 
 #define BAUD_RATE 115200
 #define I2C_ADDR_MPU6050 0x68
@@ -20,6 +21,9 @@
 #define INTERVALO_DEBUG 1000
 #define COOLDOWN_ALERTAS 10000
 
+#define DANGER_SPD_THRESHOLD 20
+#define SPD_DIFF_THRESHOLD 5
+
 #if DEBUG
 #define DEBUG_PRINT(x) Serial.print(x)
 #define DEBUG_PRINTLN(x) Serial.println(x)
@@ -31,21 +35,21 @@
 Adafruit_MPU6050 mpu;
 PulseOximeter pox;
 
-enum ALERT_CODE : uint8_t { ALERT_BTN, ALERT_COLLISION, ALERT_HEARTRATE, ALERT_O2, ALERT_NONE };
+enum ALERT_CODE : u8 { ALERT_BTN, ALERT_COLLISION, ALERT_HEARTRATE, ALERT_O2, ALERT_NONE };
 String alerts[] = { "Botão de Pânico Acionado!", "Queda Brusca Detectada!",
 		    "Frequência Cardíaca Crítica!", "Hipóxia Crítica!" };
 
 // vars for task data sharing
 volatile float bpm_global = 0.0;
-volatile uint8_t spo2_global = 0;
+volatile u8 spo2_global = 0;
 
 static float magnitude = 0;
 
 // Timers
-uint32_t t_tick_sensors = 0;
-uint32_t t_activated_alarm = 0;
-uint32_t t_telemtry = 0;
-uint32_t t_last_alert = 0;
+u32 t_tick_sensors = 0;
+u32 t_activated_alarm = 0;
+u32 t_telemtry = 0;
+u32 t_last_alert = 0;
 
 bool disable_alarm = false;
 
@@ -53,6 +57,13 @@ static void print_data(void);
 static float module(sensors_vec_t vec);
 static void onBeatDetected(void);
 static bool onPowerState(const String &deviceId, bool &state);
+
+#define MODULES_LEN 10
+static float modules[MODULES_LEN] = {};
+static u8 modules_i = 0;
+static void buffer_update(float magnitude);
+static float buffer_get_avg(void);
+static bool detect_collision(float magnitude);
 
 // task for reading MAX30100 data on parallel
 void max30100_task(void *pvParameters)
@@ -72,7 +83,7 @@ void max30100_task(void *pvParameters)
 	pox.setIRLedCurrent(MAX30100_LED_CURR_50MA);
 	pox.setOnBeatDetectedCallback(onBeatDetected);
 
-	uint32_t t_update_vars = 0;
+	u32 t_update_vars = 0;
 
 	while (1) {
 		pox.update();
@@ -136,7 +147,7 @@ void loop()
 
 	//sensors logic loop (100ms)
 	if (millis() - t_tick_sensors > INTERVALO_SENSORES) {
-		uint8_t alert_id = ALERT_NONE;
+		u8 alert_id = ALERT_NONE;
 
 		// check for emergency btn
 		if (digitalRead(BTN_PIN) == LOW) {
@@ -147,13 +158,12 @@ void loop()
 		sensors_event_t acell_ev, gyro_ev, temp_ev;
 		mpu.getEvent(&acell_ev, &gyro_ev, &temp_ev);
 		magnitude = module(acell_ev.acceleration);
-		if (magnitude > 25.0) {
+		if (detect_collision(magnitude)) {
 			alert_id = ALERT_COLLISION;
 		}
-
 		// Read values shared from 30102 task
 		float bpm_local = bpm_global;
-		uint8_t spo2_local = spo2_global;
+		u8 spo2_local = spo2_global;
 
 		// check oximeter and heartrate
 		if (bpm_local > 0) {
@@ -214,4 +224,42 @@ static void onBeatDetected(void)
 bool onPowerState(const String &deviceId, bool &state)
 {
 	return true;
+}
+
+static void buffer_update(float value)
+{
+	if (modules_i < MODULES_LEN) {
+		modules[modules_i] = value;
+		modules_i++;
+	} else {
+		modules_i = 0;
+	}
+}
+
+static float buffer_get_avg(void)
+{
+	float sum;
+	for (u8 i = 0; i < MODULES_LEN; i++) {
+		sum += modules[i];
+	}
+	return sum / MODULES_LEN;
+};
+
+static bool detect_collision(float magnitude)
+{
+#ifdef NEW_DETECTION
+	float avg = buffer_get_avg();
+	bool dangerous_spd = (avg > DANGER_SPD_THRESHOLD);
+	bool crash = ((magnitude - avg) > SPD_DIFF_THRESHOLD);
+
+	if (dangerous_spd && crash) {
+		return true;
+	} else
+		buffer_update(magnitude);
+#else
+	if (magnitude > 25.0) {
+		return true;
+	}
+#endif
+	return false;
 }
