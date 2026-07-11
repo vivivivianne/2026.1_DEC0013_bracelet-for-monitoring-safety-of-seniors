@@ -17,18 +17,27 @@
 #define I2C1_SCL 22
 #define I2C2_SDA 32
 #define I2C2_SCL 33
-#define SENSORS_INTERVAL 100
+#define SENSORS_INTERVAL 1
+#define OXM_INTERVAL 100
+#define DEBUG_INTERVAL 100
 #define ALERT_COOLDOWN 10000
 
-#define SPD_DANGER_THRESHOLD 20
-#define SPD_DIFF_THRESHOLD 5
-
 #ifdef DEBUG
+
 #define DEBUG_PRINT(x) Serial.print(x)
 #define DEBUG_PRINTLN(x) Serial.println(x)
+// smaller thresholds for testing!
+#define ACCEL_DANGER_THRESHOLD 15
+#define ACCEL_DIFF_THRESHOLD 2
+
 #else
+
 #define DEBUG_PRINT(x)
 #define DEBUG_PRINTLN(x)
+
+#define ACCEL_DANGER_THRESHOLD 17
+#define ACCEL_DIFF_THRESHOLD 4
+
 #endif
 
 Adafruit_MPU6050 mpu;
@@ -37,9 +46,10 @@ PulseOximeter pox;
 enum ERROR_TYPES { ERR_THREAD, ERR_OXM, ERR_MPU6050, ERR_OTHER };
 
 enum ALERT_CODE : u8 { ALERT_BTN, ALERT_COLLISION, ALERT_HEARTRATE, ALERT_O2, ALERT_NONE };
-
 String alerts[] = { "Botão de Pânico Acionado!", "Queda Brusca Detectada!",
 		    "Frequência Cardíaca Crítica!", "Hipóxia Crítica!" };
+
+static u8 alert_id = ALERT_NONE;
 
 // vars for task data sharing
 volatile f32 bpm_global = 0.0;
@@ -52,15 +62,16 @@ u32 t_tick_sensors = 0;
 u32 t_activated_alarm = 0;
 u32 t_telemtry = 0;
 u32 t_last_alert = 0;
-
-bool disable_alarm = false;
+u32 t_modules_update = 0;
 
 static void print_data(void);
 static f32 module(sensors_vec_t vec);
 static void onBeatDetected(void);
 static bool onPowerState(const String &deviceId, bool &state);
 
-#define MODULES_LEN 10
+#define MODULES_LEN 15
+#define MODULES_UPDATE_INTERVAL 100
+static f32 modules_avg = 0;
 static f32 modules[MODULES_LEN] = {};
 static u8 modules_i = 0;
 static void buffer_update(f32 magnitude);
@@ -90,7 +101,7 @@ void max30100_task(void *pvParameters)
 	while (1) {
 		pox.update();
 
-		if (millis() - t_update_vars > SENSORS_INTERVAL) {
+		if (millis() - t_update_vars > OXM_INTERVAL) {
 			bpm_global = pox.getHeartRate();
 			spo2_global = pox.getSpO2();
 			t_update_vars = millis();
@@ -141,16 +152,14 @@ void loop()
 	SinricPro.handle();
 
 	// desativar o alarme depois de 3 segundos
-	if (disable_alarm && (millis() - t_activated_alarm > 3000)) {
+	if (alert_id != ALERT_NONE && (millis() - t_activated_alarm > 3000)) {
 		SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
 		mySwitch.sendPowerStateEvent(false);
-		disable_alarm = false;
+		alert_id = ALERT_NONE;
 	}
 
-	//sensors logic loop (100ms)
-	if (millis() - t_tick_sensors > SENSORS_INTERVAL) {
-		u8 alert_id = ALERT_NONE;
-
+	//sensors logic loop
+	if (millis() - t_tick_sensors > SENSORS_INTERVAL && alert_id == ALERT_NONE) {
 		// check for emergency btn
 		if (digitalRead(BTN_PIN) == LOW) {
 			alert_id = ALERT_BTN;
@@ -162,33 +171,43 @@ void loop()
 		magnitude = module(acell_ev.acceleration);
 		if (detect_collision(magnitude)) {
 			alert_id = ALERT_COLLISION;
-		}
-		// Read values shared from 30102 task
+		} // Read values shared from 30102 task
 		f32 bpm_local = bpm_global;
 		u8 spo2_local = spo2_global;
 
 		// check oximeter and heartrate
-		if (bpm_local > 0) {
-			if (bpm_local < 40.0 || bpm_local > 130.0) {
-				alert_id = ALERT_HEARTRATE;
-			} else if (spo2_local > 0 && spo2_local < 90) {
-				alert_id = ALERT_O2;
-			}
-		}
+		//if (bpm_local > 0) {
+		//		if (bpm_local < 40.0 || bpm_local > 130.0) {
+		//			alert_id = ALERT_HEARTRATE;
+		//		} else if (spo2_local > 0 && spo2_local < 90) {
+		//			alert_id = ALERT_O2;
+		//		}
+		//	}
 
 		// handle alert
-		if (alert_id != ALERT_NONE && (millis() - t_last_alert > ALERT_COOLDOWN)) {
-			DEBUG_PRINTLN("\n>>> [ALERTA] DISPARANDO EVENTO: " + alerts[alert_id]);
-			SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
-			mySwitch.sendPowerStateEvent(true);
-			mySwitch.sendPushNotification(alerts[alert_id]);
-
-			t_activated_alarm = millis();
-			disable_alarm = true;
-			t_last_alert = millis();
+		if (alert_id != ALERT_NONE) {
+			if (millis() - t_last_alert > ALERT_COOLDOWN) {
+				DEBUG_PRINTLN("\n [ALERTA] DISPARANDO EVENTO: " + alerts[alert_id]);
+				SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
+				mySwitch.sendPowerStateEvent(true);
+				mySwitch.sendPushNotification(alerts[alert_id]);
+				// reset modules array
+				memset(modules, 0, sizeof(f32) * MODULES_LEN);
+				t_activated_alarm = millis();
+				t_last_alert = millis();
+			} else {
+				// this will print a lot of stuff
+				// it's interesting to see how many of the readings
+				// would've triggered the alarm!
+				DEBUG_PRINTLN("ALERTA RECENTE JÁ FOI ENVIADO");
+				alert_id = ALERT_NONE;
+			}
 		}
-
 		t_tick_sensors = millis();
+	}
+	if (millis() - t_modules_update > MODULES_UPDATE_INTERVAL && alert_id == ALERT_NONE) {
+		t_modules_update = millis();
+		buffer_update(magnitude);
 	}
 
 	//debug_output (1000ms)
@@ -198,9 +217,11 @@ void loop()
 static void print_data(void)
 {
 #ifdef DEBUG
-	if (millis() - t_telemtry > SENSORS_INTERVAL) {
+	if (millis() - t_telemtry > DEBUG_INTERVAL && alert_id == ALERT_NONE) {
 		DEBUG_PRINT("[DATA] Magnitude: ");
 		DEBUG_PRINT(magnitude);
+		DEBUG_PRINT("m/s² | Avg: ");
+		DEBUG_PRINT(modules_avg);
 		DEBUG_PRINT(" m/s² | FC: ");
 		DEBUG_PRINT(bpm_global);
 		DEBUG_PRINT(" bpm | SpO2: ");
@@ -236,11 +257,12 @@ static void buffer_update(f32 value)
 	} else {
 		modules_i = 0;
 	}
+	modules_avg = buffer_get_avg();
 }
 
 static f32 buffer_get_avg(void)
 {
-	f32 sum;
+	f32 sum = 0.f;
 	for (u8 i = 0; i < MODULES_LEN; i++) {
 		sum += modules[i];
 	}
@@ -249,20 +271,14 @@ static f32 buffer_get_avg(void)
 
 static bool detect_collision(f32 magnitude)
 {
-#ifdef NEW_DETECTION
-	f32 avg = buffer_get_avg();
-	bool dangerous_spd = (avg > SPD_DANGER_THRESHOLD);
-	f32 diff = (magnitude - avg);
-	bool crash = ((diff < 0) && (abs(diff) > SPD_DIFF_THRESHOLD));
+	bool dangerous_spd = (modules_avg > ACCEL_DANGER_THRESHOLD);
+	f32 diff = (magnitude - modules_avg);
+	bool crash = ((diff < 0) && (abs(diff) > ACCEL_DIFF_THRESHOLD));
 
 	if (dangerous_spd && crash) {
-		return true;
-	} else
-		buffer_update(magnitude);
-#else
-	if (magnitude > 25.0) {
+		DEBUG_PRINT("[COLLISION DETECTED] - DIFF:");
+		DEBUG_PRINTLN(diff);
 		return true;
 	}
-#endif
 	return false;
 }

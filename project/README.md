@@ -18,8 +18,12 @@
 - [x] Use buntypes.h
 - [x] Move credential configuration to a different file
 - [x] use temporal sampling to avoid noise and false postives when detecting collisions (NEEDS TESTING) (MAKE this feature toggleable with a build flag)
-- [ ] Global struct containing all of the sensor data (do not recalculate stuff in debug print ig lol)
+- [x] Test and improve collision detection! 
+- [ ] Global structs containing all of the sensor data (do not recalculate stuff in debug print ig lol)
+- [ ] Separate timers for reading the mpu6050 each tick 
 - [ ] Remove more magic numbers
 - [ ] Move debug text elsewhere and group it togheter.
+- [ ] Avoid using random global variabels for eveything, use structs instead :3
 - [ ] Separate functions for alert detection for each sensor, each function should receive thresholds and settings to define how sensible they are to triggering an alert
 - [ ] Add translations for all texts and allow selecting language with build options 
+- [ ] Add compile flag to optionally disable the oximeter
