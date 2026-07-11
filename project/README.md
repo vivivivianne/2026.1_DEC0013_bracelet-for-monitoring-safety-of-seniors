@@ -19,6 +19,7 @@
 - [x] Move credential configuration to a different file
 - [x] use temporal sampling to avoid noise and false postives when detecting collisions (NEEDS TESTING) (MAKE this feature toggleable with a build flag)
 - [ ] Global struct containing all of the sensor data (do not recalculate stuff in debug print ig lol)
-- [ ] Remove some magic numbers
+- [ ] Remove more magic numbers
 - [ ] Move debug text elsewhere and group it togheter.
 - [ ] Separate functions for alert detection for each sensor, each function should receive thresholds and settings to define how sensible they are to triggering an alert
+- [ ] Add translations for all texts and allow selecting language with build options 

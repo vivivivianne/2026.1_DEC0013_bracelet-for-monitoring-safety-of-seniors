@@ -17,11 +17,10 @@
 #define I2C1_SCL 22
 #define I2C2_SDA 32
 #define I2C2_SCL 33
-#define INTERVALO_SENSORES 100
-#define INTERVALO_DEBUG 1000
-#define COOLDOWN_ALERTAS 10000
+#define SENSORS_INTERVAL 100
+#define ALERT_COOLDOWN 10000
 
-#define DANGER_SPD_THRESHOLD 20
+#define SPD_DANGER_THRESHOLD 20
 #define SPD_DIFF_THRESHOLD 5
 
 #ifdef DEBUG
@@ -35,7 +34,10 @@
 Adafruit_MPU6050 mpu;
 PulseOximeter pox;
 
+enum ERROR_TYPES { ERR_THREAD, ERR_OXM, ERR_MPU6050, ERR_OTHER };
+
 enum ALERT_CODE : u8 { ALERT_BTN, ALERT_COLLISION, ALERT_HEARTRATE, ALERT_O2, ALERT_NONE };
+
 String alerts[] = { "Botão de Pânico Acionado!", "Queda Brusca Detectada!",
 		    "Frequência Cardíaca Crítica!", "Hipóxia Crítica!" };
 
@@ -88,7 +90,7 @@ void max30100_task(void *pvParameters)
 	while (1) {
 		pox.update();
 
-		if (millis() - t_update_vars > 500) {
+		if (millis() - t_update_vars > SENSORS_INTERVAL) {
 			bpm_global = pox.getHeartRate();
 			spo2_global = pox.getSpO2();
 			t_update_vars = millis();
@@ -146,7 +148,7 @@ void loop()
 	}
 
 	//sensors logic loop (100ms)
-	if (millis() - t_tick_sensors > INTERVALO_SENSORES) {
+	if (millis() - t_tick_sensors > SENSORS_INTERVAL) {
 		u8 alert_id = ALERT_NONE;
 
 		// check for emergency btn
@@ -175,7 +177,7 @@ void loop()
 		}
 
 		// handle alert
-		if (alert_id != ALERT_NONE && (millis() - t_last_alert > COOLDOWN_ALERTAS)) {
+		if (alert_id != ALERT_NONE && (millis() - t_last_alert > ALERT_COOLDOWN)) {
 			DEBUG_PRINTLN("\n>>> [ALERTA] DISPARANDO EVENTO: " + alerts[alert_id]);
 			SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
 			mySwitch.sendPowerStateEvent(true);
@@ -196,8 +198,8 @@ void loop()
 static void print_data(void)
 {
 #ifdef DEBUG
-	if (millis() - t_telemtry > INTERVALO_DEBUG) {
-		DEBUG_PRINT("[DATA] Magnitude G: ");
+	if (millis() - t_telemtry > SENSORS_INTERVAL) {
+		DEBUG_PRINT("[DATA] Magnitude: ");
 		DEBUG_PRINT(magnitude);
 		DEBUG_PRINT(" m/s² | FC: ");
 		DEBUG_PRINT(bpm_global);
@@ -249,7 +251,7 @@ static bool detect_collision(f32 magnitude)
 {
 #ifdef NEW_DETECTION
 	f32 avg = buffer_get_avg();
-	bool dangerous_spd = (avg > DANGER_SPD_THRESHOLD);
+	bool dangerous_spd = (avg > SPD_DANGER_THRESHOLD);
 	f32 diff = (magnitude - avg);
 	bool crash = ((diff < 0) && (abs(diff) > SPD_DIFF_THRESHOLD));
 
