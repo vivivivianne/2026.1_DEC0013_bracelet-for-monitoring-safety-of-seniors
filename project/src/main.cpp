@@ -176,13 +176,13 @@ void loop()
 		u8 spo2_local = spo2_global;
 
 		// check oximeter and heartrate
-		//if (bpm_local > 0) {
-		//		if (bpm_local < 40.0 || bpm_local > 130.0) {
-		//			alert_id = ALERT_HEARTRATE;
-		//		} else if (spo2_local > 0 && spo2_local < 90) {
-		//			alert_id = ALERT_O2;
-		//		}
-		//	}
+		if (bpm_local > 0) {
+				if (bpm_local < 40.0 || bpm_local > 130.0) {
+					alert_id = ALERT_HEARTRATE;
+				} else if (spo2_local > 0 && spo2_local < 90) {
+					alert_id = ALERT_O2;
+				}
+			}
 
 		// handle alert
 		if (alert_id != ALERT_NONE) {
