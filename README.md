@@ -25,7 +25,8 @@ TBA
 
 ### To-do
 - [x] code review / cleanup / merge
-- [ ] test and adjust the final code
+- [x] test and adjust the final code
 - [ ] Document how to setup platformio and compile the project
 - [ ] Document file structure
 - [ ] Update project documentation
+- [ ] Extra code cleanup and build features
