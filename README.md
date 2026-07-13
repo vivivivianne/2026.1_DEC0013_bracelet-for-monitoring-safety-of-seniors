@@ -70,7 +70,8 @@ LANG_BR
 │   └── 🖼️sinric.png
 ├── 📁PCBlayout
 │   └── 📄README.md
-└── 📄README.md```
+└── 📄README.md
+```
 
 ---
 
