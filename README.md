@@ -1,6 +1,6 @@
 # Bracelet for monitoring safety of seniors with Sinric Pro
 
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+<!-- ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) -->
 ![PlatformIO](https://img.shields.io/badge/PlatformIO-Build%20%26%20Flash-orange)
 ![Language: C++](https://img.shields.io/badge/Language-C++-purple.svg)
 
