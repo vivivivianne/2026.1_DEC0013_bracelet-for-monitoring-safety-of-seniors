@@ -27,25 +27,27 @@ It also waits an interval of 10 seconds between alerts to avoid spamming the Sin
 
 ## Setup
 
-- Install PlatformIO following their [documentation](https://platformio.org/install). 
+Install PlatformIO following their [documentation](https://platformio.org/install). 
 
-- Create an account on [Sinric Pro](https://sinric.pro/) and create a new device, select switch as the type and ensure the notification setting is enabled. After that you can go to your device page and get it's credentials.
+Create an account on [Sinric Pro](https://sinric.pro/) and create a new device, select switch as the type and ensure the notification setting is enabled. After that you can go to your device page and get it's credentials.
 
 ![Sinric Device Creation](img/sinric.png)
 
-- Clone this repo 
+Clone this repo 
 
-- Go to bracelet/src/credentials.h and substitute your Sinric Pro credentials accordingly there.
+Go to bracelet/src/credentials.h and substitute your Sinric Pro credentials accordingly there.
 
-- Build / Flash by running the following command inside bracelet/
+Build / Flash by running the following command inside bracelet/
 
 ``pio run -t upload``
 
-[! Recommended for testing, prints a lot of data!]
+[ ! Recommended for testing, prints a lot of data ]
 
 To Build / Flash with debugging enabled run,
 
 ``pio run -e debug -t upload``
+
+---
 
 ## Project structure
 ```
