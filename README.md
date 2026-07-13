@@ -28,7 +28,7 @@ It also waits an interval of 10 seconds between alerts to avoid spamming the Sin
 Install PlatformIO following their [documentation](https://platformio.org/install). 
 
 Create an account on [Sinric Pro](https://sinric.pro/) and create a new device, select switch as the type and ensure the notification setting is enabled. After that you can go to your device page and get it's credentials.
-
+You can see the alerts on the [Sinric Pro Activity log](https://portal.sinric.pro/activitylog), but you may also install the Sinric Pro app on your phone to receive push notifications there.
 ![Sinric Device Creation](img/sinric.png)
 
 Clone this repo 
