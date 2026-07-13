@@ -18,9 +18,7 @@ The Hardware consists of an ESP32 microcontroller paired togheter with a MPU6050
 
 The Firmware is written in C++ and uses the PlatformIO framework with arduino and freertos libs, reading data from the sensors with I2C. 
 
-![Code Output Example](img/output.png)
-
-It reads data as often at a frequency of 1hz from the mpu6050 for better collision, it also filters the data by comparing the current acceleration value with an average of the values during the last 2 seconds, this allows us to notice when a value is an outlier, but also helps ignoring some false positives.
+It reads data at 1hz frequency from the mpu6050 for better collision, it also filters the data by comparing the current acceleration value with an average of the values during the last 2 seconds, this allows us to notice when a value is an outlier, but also helps ignoring some false positives.
 It also waits an interval of 10 seconds between alerts to avoid spamming the Sinric Pro API.
 
 ---
@@ -41,11 +39,17 @@ Build / Flash by running the following command inside bracelet/
 
 ``pio run -t upload``
 
-[ ! Recommended for testing, prints a lot of data ]
-
 To Build / Flash with debugging enabled run,
 
 ``pio run -e debug -t upload``
+
+On debug mode the esp will have slightly smaller collision detection thresholds for better testing.
+You can also edit bracelet/platformio.ini to change the compile flags, the available options are also documented on the file itself.
+The available flags that can be altered are:
+
+DEBUG
+DISABLE_OXM
+LANG_BR
 
 ---
 
@@ -56,7 +60,6 @@ To Build / Flash with debugging enabled run,
 │   ├── 📄compile_commands.json
 │   ├── 📄diagram.json
 │   ├── 📄platformio.ini
-│   ├── 📄README.md
 │   ├── 📁src
 │   │   ├── 📄credentials.h
 │   │   ├── 📄main.cpp
@@ -76,12 +79,3 @@ To Build / Flash with debugging enabled run,
 - Vivianne Coelho Fernandes
 - Grégori Silva Grazziani de Oliveira
 - Vinicius Caio Rodrigues
-
-### To-do
-- [x] code review / cleanup / merge
-- [x] test and adjust the final code
-- [x] Document how to setup platformio and compile the project
-- [x] Document file structure
-- [x] Update project documentation
-- [ ] Extra code cleanup and build features
-- [ ] Remove readme from bracelet folder.

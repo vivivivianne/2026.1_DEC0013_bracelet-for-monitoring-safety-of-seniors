@@ -18,38 +18,42 @@
 #define I2C2_SDA 32
 #define I2C2_SCL 33
 #define SENSORS_INTERVAL 1
-#define OXM_INTERVAL 100
+#define OXM_INTERVAL 400
 #define DEBUG_INTERVAL 100
 #define ALERT_COOLDOWN 10000
 
 #ifdef DEBUG
 
-#define DEBUG_PRINT(x) Serial.print(x)
-#define DEBUG_PRINTLN(x) Serial.println(x)
+#define DEBUG_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 // smaller thresholds for testing!
-#define ACCEL_DANGER_THRESHOLD 15
-#define ACCEL_DIFF_THRESHOLD 2
+#define ACCEL_DANGER_THRESHOLD 14
+#define ACCEL_DIFF_THRESHOLD 1
 
 #else
+#define DEBUG_PRINT(fmt, ...) ((void)0)
 
-#define DEBUG_PRINT(x)
-#define DEBUG_PRINTLN(x)
-
-#define ACCEL_DANGER_THRESHOLD 17
-#define ACCEL_DIFF_THRESHOLD 4
+#define ACCEL_DANGER_THRESHOLD 16
+#define ACCEL_DIFF_THRESHOLD 2
 
 #endif
 
 Adafruit_MPU6050 mpu;
 PulseOximeter pox;
 
-enum ERROR_TYPES { ERR_THREAD, ERR_OXM, ERR_MPU6050, ERR_OTHER };
+// enum ERROR_TYPES { ERR_THREAD, ERR_OXM, ERR_MPU6050, ERR_OTHER };
+// enum DEBUG { };
+// String debug_strings[];
 
 enum ALERT_CODE : u8 { ALERT_BTN, ALERT_COLLISION, ALERT_HEARTRATE, ALERT_O2, ALERT_NONE };
+static enum ALERT_CODE alert_id = ALERT_NONE;
+
+#ifdef LANG_BR
 String alerts[] = { "Botão de Pânico Acionado!", "Queda Brusca Detectada!",
 		    "Frequência Cardíaca Crítica!", "Hipóxia Crítica!" };
-
-static u8 alert_id = ALERT_NONE;
+#else
+String alerts[] = { "Panic Button Activated!", "Sudden Drop Detected!", "Critical heart rate!",
+		    "Critical Hipoxia!" };
+#endif
 
 // vars for task data sharing
 volatile f32 bpm_global = 0.0;
@@ -77,27 +81,28 @@ static u8 modules_i = 0;
 static void buffer_update(f32 magnitude);
 static f32 buffer_get_avg(void);
 static bool detect_collision(f32 magnitude);
+static enum ALERT_CODE detect_bpm_spo(f32 bpm, u8 spo2);
 
 // task for reading MAX30100 data on parallel
 void max30100_task(void *pvParameters)
 {
-	DEBUG_PRINT("[CORE 0] Inicializando MAX30100 no núcleo: ");
-	DEBUG_PRINTLN(xPortGetCoreID());
+	DEBUG_PRINT("[OXM] Initializing MAX30102 Task : %d\n", xPortGetCoreID());
+	delay(100);
 
+	DEBUG_PRINT("[OXM] Configuring I2C\n");
 	Wire.begin(I2C1_SDA, I2C1_SCL);
-	DEBUG_PRINTLN("[OXM] Configurando I2C");
+
 	while (!pox.begin()) {
-		DEBUG_PRINTLN("[OXM] MAX30100 não encontrado, tentando novamente!");
+		DEBUG_PRINT("[OXM] MAX30100 not found, trying again!\n");
 		delay(1000);
 	}
-	DEBUG_PRINTLN("[OXM] OK!");
+	DEBUG_PRINT("[OXM] OK!\n");
 
 	// use tested current
 	pox.setIRLedCurrent(MAX30100_LED_CURR_50MA);
 	pox.setOnBeatDetectedCallback(onBeatDetected);
 
 	u32 t_update_vars = 0;
-
 	while (1) {
 		pox.update();
 
@@ -106,10 +111,9 @@ void max30100_task(void *pvParameters)
 			spo2_global = pox.getSpO2();
 			t_update_vars = millis();
 		}
-
-		//keep watchdog alive
-		vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
+	//keep watchdog alive
+	vTaskDelay(1 / portTICK_PERIOD_MS);
 }
 
 // SETUP (CORE 1)
@@ -119,27 +123,29 @@ void setup()
 	pinMode(BTN_PIN, INPUT_PULLUP);
 
 	// Oximeter task
+#ifndef DISABLE_OXM
 	BaseType_t task = xTaskCreatePinnedToCore(max30100_task, "TaskMAX", 4096, NULL, 1, NULL, 0);
 	configASSERT(task == pdPASS);
+#endif
 
 	// Mpu6050
 	Wire1.begin(I2C2_SDA, I2C2_SCL);
-	DEBUG_PRINT("[MPU] Configurando I2C");
+	DEBUG_PRINT("[MPU] Configuring I2C\n");
 	while (!mpu.begin(MPU6050_I2CADDR_DEFAULT, &Wire1)) {
-		DEBUG_PRINTLN("[MPU] MPU6050 não encontrado, tentando novamente!");
+		DEBUG_PRINT("[MPU] MPU6050 Not found, Trying again!\n");
 		delay(1000);
 	}
-	DEBUG_PRINTLN("[MPU] OK!");
+	DEBUG_PRINT("[MPU] OK!\n");
 	mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
 
 	//Wifi
-	DEBUG_PRINT("[WIFI] Conectando WiFi");
+	DEBUG_PRINT("[WIFI] Conecting to wifi\n");
 	WiFi.begin(WIFI_SSID, WIFI_PASS);
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(500);
-		DEBUG_PRINT(".");
+		DEBUG_PRINT(".\n");
 	}
-	DEBUG_PRINTLN("[WIFI] OK!");
+	DEBUG_PRINT("[WIFI] OK!\n");
 
 	// SinricPro
 	SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
@@ -159,7 +165,7 @@ void loop()
 	}
 
 	//sensors logic loop
-	if (millis() - t_tick_sensors > SENSORS_INTERVAL && alert_id == ALERT_NONE) {
+	if ((millis() - t_tick_sensors > SENSORS_INTERVAL && alert_id == ALERT_NONE)) {
 		// check for emergency btn
 		if (digitalRead(BTN_PIN) == LOW) {
 			alert_id = ALERT_BTN;
@@ -171,23 +177,20 @@ void loop()
 		magnitude = module(acell_ev.acceleration);
 		if (detect_collision(magnitude)) {
 			alert_id = ALERT_COLLISION;
-		} // Read values shared from 30102 task
+		}
+
+		// Read values shared from 30102 task
 		f32 bpm_local = bpm_global;
 		u8 spo2_local = spo2_global;
 
 		// check oximeter and heartrate
-		if (bpm_local > 0) {
-				if (bpm_local < 40.0 || bpm_local > 130.0) {
-					alert_id = ALERT_HEARTRATE;
-				} else if (spo2_local > 0 && spo2_local < 90) {
-					alert_id = ALERT_O2;
-				}
-			}
+		alert_id = detect_bpm_spo(bpm_local, spo2_local);
 
 		// handle alert
 		if (alert_id != ALERT_NONE) {
 			if (millis() - t_last_alert > ALERT_COOLDOWN) {
-				DEBUG_PRINTLN("\n [ALERTA] DISPARANDO EVENTO: " + alerts[alert_id]);
+				DEBUG_PRINT("\n [ALERT] TRIGGERING EVENT : %s",
+					    alerts[alert_id].c_str());
 				SinricProSwitch &mySwitch = SinricPro[BRACELET_ID];
 				mySwitch.sendPowerStateEvent(true);
 				mySwitch.sendPushNotification(alerts[alert_id]);
@@ -199,7 +202,8 @@ void loop()
 				// this will print a lot of stuff
 				// it's interesting to see how many of the readings
 				// would've triggered the alarm!
-				DEBUG_PRINTLN("ALERTA RECENTE JÁ FOI ENVIADO");
+				DEBUG_PRINT(
+					"A recent alert was already triggered, waiting cooldown.\n");
 				alert_id = ALERT_NONE;
 			}
 		}
@@ -209,7 +213,6 @@ void loop()
 		t_modules_update = millis();
 		buffer_update(magnitude);
 	}
-
 	//debug_output (1000ms)
 	print_data();
 }
@@ -218,15 +221,9 @@ static void print_data(void)
 {
 #ifdef DEBUG
 	if (millis() - t_telemtry > DEBUG_INTERVAL && alert_id == ALERT_NONE) {
-		DEBUG_PRINT("[DATA] Magnitude: ");
-		DEBUG_PRINT(magnitude);
-		DEBUG_PRINT("m/s² | Avg: ");
-		DEBUG_PRINT(modules_avg);
-		DEBUG_PRINT(" m/s² | FC: ");
-		DEBUG_PRINT(bpm_global);
-		DEBUG_PRINT(" bpm | SpO2: ");
-		DEBUG_PRINT(spo2_global);
-		DEBUG_PRINTLN("%");
+		DEBUG_PRINT(
+			"[DATA] Magnitude: %.2f m/s² | Avg: %.2f m/s² | Bpm: %.2f bpm | SpO2: %d %% \n",
+			magnitude, modules_avg, bpm_global, spo2_global);
 		t_telemtry = millis();
 	}
 #endif
@@ -276,9 +273,24 @@ static bool detect_collision(f32 magnitude)
 	bool crash = ((diff < 0) && (abs(diff) > ACCEL_DIFF_THRESHOLD));
 
 	if (dangerous_spd && crash) {
-		DEBUG_PRINT("[COLLISION DETECTED] - DIFF:");
-		DEBUG_PRINTLN(diff);
+		DEBUG_PRINT("[COLLISION DETECTED] - DIFF: %f", diff);
 		return true;
 	}
 	return false;
 }
+
+static enum ALERT_CODE detect_bpm_spo(f32 bpm, u8 spo2)
+{
+#ifndef DISABLE_OXM
+	if (alert_id == ALERT_NONE) {
+		if (bpm > 0) {
+			if (bpm < 40.0 || bpm > 130.0) {
+				return ALERT_HEARTRATE;
+			} else if (spo2 > 0 && spo2 < 90) {
+				return ALERT_O2;
+			}
+		}
+	}
+#endif
+	return alert_id;
+};
