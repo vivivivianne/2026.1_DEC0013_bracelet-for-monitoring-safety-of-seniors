@@ -45,11 +45,11 @@ To Build / Flash with debugging enabled run,
 
 On debug mode the esp will have slightly smaller collision detection thresholds for better testing.
 You can also edit bracelet/platformio.ini to change the compile flags, the available options are also documented on the file itself.
-The available flags that can be altered are:
+The available flags that can be set are:
 
-DEBUG
-DISABLE_OXM
-LANG_BR
+- DEBUG
+- DISABLE_OXM
+- LANG_BR
 
 ---
 
@@ -71,6 +71,7 @@ LANG_BR
 ├── 📁PCBlayout
 │   └── 📄README.md
 └── 📄README.md
+
 ```
 
 ---
