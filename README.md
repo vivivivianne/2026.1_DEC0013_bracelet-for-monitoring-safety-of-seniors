@@ -51,6 +51,15 @@ The available flags that can be set are:
 - DISABLE_OXM
 - LANG_BR
 
+You may also change the acceleration thresholds used for collision detection in 
+bracelet/src/main.cpp
+
+```
+#define ACCEL_DANGER_THRESHOLD 14
+#define ACCEL_DIFF_THRESHOLD 1
+```
+by default the debug value is more sensible for easier testing
+
 ---
 
 ## Project structure
