@@ -18,7 +18,7 @@ The Hardware consists of an ESP32 microcontroller paired togheter with a MPU6050
 
 The Firmware is written in C++ and uses the PlatformIO framework with arduino and freertos libs, reading data from the sensors with I2C. 
 
-It reads data at 1hz frequency from the mpu6050 for better collision, it also filters the data by comparing the current acceleration value with an average of the values during the last 2 seconds, this allows us to notice when a value is an outlier, but also helps ignoring some false positives.
+It reads data at 1000hz frequency from the mpu6050 for better collision, it also filters the data by comparing the current acceleration value with an average of the values during the last 2 seconds, this allows us to notice when a value is an outlier, but also helps ignoring some false positives.
 It also waits an interval of 10 seconds between alerts to avoid spamming the Sinric Pro API.
 
 ---
