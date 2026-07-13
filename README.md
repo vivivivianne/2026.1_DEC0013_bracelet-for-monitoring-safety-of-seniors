@@ -44,12 +44,13 @@ To Build / Flash with debugging enabled run,
 ``pio run -e debug -t upload``
 
 On debug mode the esp will have slightly smaller collision detection thresholds for better testing.
+
 You can also edit bracelet/platformio.ini to change the compile flags, the available options are also documented on the file itself.
 The available flags that can be set are:
 
-- DEBUG
-- DISABLE_OXM
-- LANG_BR
+- -D DEBUG
+- -D DISABLE_OXM
+- -D LANG_BR
 
 You may also change the acceleration thresholds used for collision detection in 
 bracelet/src/main.cpp
